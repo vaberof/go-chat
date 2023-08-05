@@ -1,0 +1,18 @@
+{
+  "level": "info",
+  "encoding": "json",
+  "encoderConfig": {
+    "nameKey": "logger_name",
+    "messageKey": "message",
+    "levelKey": "level",
+    "timeKey": "@timestamp",
+    "levelEncoder": "capital",
+    "timeEncoder": "iso8601"
+  },
+  "outputPaths": [
+    "stdout"
+  ],
+  "errorOutputPaths": [
+    "stdout"
+  ]
+}

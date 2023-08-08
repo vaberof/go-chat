@@ -35,7 +35,9 @@ func New(config *HttpServerConfig, logs *logs.Logs) *HttpServer {
 
 func (server *HttpServer) StartAsync() *chan error {
 	exitChannel := make(chan error)
+
 	server.logger.Infow("Starting http server")
+
 	go func() {
 		err := http.ListenAndServe(server.address, server.Server)
 		if err != nil {
@@ -47,6 +49,7 @@ func (server *HttpServer) StartAsync() *chan error {
 	}()
 
 	server.logger.Infof("Started HTTP server at %s", server.address)
+
 	return &exitChannel
 }
 

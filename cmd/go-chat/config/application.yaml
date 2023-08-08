@@ -7,3 +7,10 @@ app:
     server:
       host: localhost
       port: 8081
+  auth:
+    secret-key: secret
+  database:
+    postgres:
+      host: localhost
+      port: 5432
+      name: go-chat

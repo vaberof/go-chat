@@ -14,13 +14,6 @@ type Middleware struct {
 	Logger  *zap.SugaredLogger
 }
 
-func NewNamed(logs *logs.Logs, serverName string) *Middleware {
-	if serverName == "" {
-		serverName = "default"
-	}
-	return impl(logs, serverName)
-}
-
 func New(logs *logs.Logs) *Middleware {
 	return impl(logs, "")
 }

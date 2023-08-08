@@ -2,14 +2,18 @@ package main
 
 import (
 	"errors"
-	"github.com/vaberof/go-chat/internal/domain/websocket"
+	"github.com/vaberof/go-chat/internal/domain/chat/auth"
+	"github.com/vaberof/go-chat/internal/domain/websocket/websocketserver"
+	"github.com/vaberof/go-chat/internal/infra/storage/postgres"
 	"github.com/vaberof/go-chat/pkg/config"
 	"github.com/vaberof/go-chat/pkg/http/httpserver"
 )
 
 type AppConfig struct {
-	HttpServer      httpserver.HttpServerConfig
-	WebSocketServer websocket.WebSocketServerConfig
+	HttpServer       httpserver.HttpServerConfig
+	WebsocketServer  websocketserver.WebsocketServerConfig
+	AuthService      auth.AuthServiceConfig
+	PostgresDatabase postgres.PostgresDatabaseConfig
 }
 
 func getAppConfig(sources ...string) AppConfig {
@@ -38,15 +42,29 @@ func tryGetAppConfig(sources ...string) (*AppConfig, error) {
 		return nil, err
 	}
 
-	var websocketServerConfig websocket.WebSocketServerConfig
+	var websocketServerConfig websocketserver.WebsocketServerConfig
 	err = config.ParseConfig(provider, "app.websocket.server", &websocketServerConfig)
 	if err != nil {
 		return nil, err
 	}
 
+	var authServiceConfig auth.AuthServiceConfig
+	err = config.ParseConfig(provider, "app.auth", &authServiceConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	var postgresConfig postgres.PostgresDatabaseConfig
+	err = config.ParseConfig(provider, "app.database.postgres", &postgresConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	config := AppConfig{
-		HttpServer:      httpServerConfig,
-		WebSocketServer: websocketServerConfig,
+		HttpServer:       httpServerConfig,
+		WebsocketServer:  websocketServerConfig,
+		AuthService:      authServiceConfig,
+		PostgresDatabase: postgresConfig,
 	}
 
 	return &config, nil

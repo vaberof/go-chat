@@ -2,9 +2,9 @@ package websocket
 
 import (
 	"github.com/go-chi/chi/v5"
-	"github.com/vaberof/go-chat/internal/app/entrypoint/websocket/middleware"
-	"github.com/vaberof/go-chat/internal/domain/chat/auth"
-	"github.com/vaberof/go-chat/internal/domain/websocket"
+	"github.com/vaberof/go-chat/internal/app/entrypoint/http/middleware"
+	"github.com/vaberof/go-chat/internal/domain/auth"
+	"github.com/vaberof/go-chat/internal/websocket"
 	"github.com/vaberof/go-chat/pkg/logging/logs"
 	"net/http"
 )

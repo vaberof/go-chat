@@ -2,10 +2,8 @@ package http
 
 import (
 	"encoding/json"
-	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/vaberof/go-chat/internal/app/entrypoint/http/views"
-	"github.com/vaberof/go-chat/internal/domain/chat/auth"
 	"github.com/vaberof/go-chat/pkg/domain"
 	"github.com/vaberof/go-chat/pkg/http/protocols/apiv1"
 	"net/http"
@@ -25,13 +23,7 @@ type registerResponsePayload struct {
 	Username string        `json:"username"`
 }
 
-func RegisterRoute(authService auth.AuthService) func(router chi.Router) {
-	return func(router chi.Router) {
-		router.Post("/register", RegisterHandler(authService))
-	}
-}
-
-func RegisterHandler(authService auth.AuthService) http.HandlerFunc {
+func (h *Handler) Register() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		registerReqBody := &registerRequestBody{}
 		if err := render.Bind(r, registerReqBody); err != nil {
@@ -39,7 +31,7 @@ func RegisterHandler(authService auth.AuthService) http.HandlerFunc {
 			return
 		}
 
-		user, err := authService.Register(registerReqBody.Username, registerReqBody.Password)
+		user, err := h.authService.Register(registerReqBody.Username, registerReqBody.Password)
 		if err != nil {
 			views.RenderJSON(w, r, http.StatusInternalServerError, apiv1.Error(err.Error()))
 			return

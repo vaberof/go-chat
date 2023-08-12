@@ -2,9 +2,9 @@ package main
 
 import (
 	"errors"
-	"github.com/vaberof/go-chat/internal/domain/chat/auth"
-	"github.com/vaberof/go-chat/internal/domain/websocket/websocketserver"
+	"github.com/vaberof/go-chat/internal/domain/auth"
 	"github.com/vaberof/go-chat/internal/infra/storage/postgres"
+	"github.com/vaberof/go-chat/internal/websocket/websocketserver"
 	"github.com/vaberof/go-chat/pkg/config"
 	"github.com/vaberof/go-chat/pkg/http/httpserver"
 )

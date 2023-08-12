@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"github.com/joho/godotenv"
 	httproutes "github.com/vaberof/go-chat/internal/app/entrypoint/http"
-	"github.com/vaberof/go-chat/internal/app/entrypoint/websocket"
-	"github.com/vaberof/go-chat/internal/domain/chat/auth"
-	"github.com/vaberof/go-chat/internal/domain/chat/user"
-	"github.com/vaberof/go-chat/internal/domain/websocket/websocketserver"
+	websocketroutes "github.com/vaberof/go-chat/internal/app/entrypoint/websocket"
+	"github.com/vaberof/go-chat/internal/domain/auth"
+	"github.com/vaberof/go-chat/internal/domain/room"
+	"github.com/vaberof/go-chat/internal/domain/user"
 	"github.com/vaberof/go-chat/internal/infra/storage/postgres"
-	"github.com/vaberof/go-chat/internal/infra/storage/postgres/postgresuser"
+	"github.com/vaberof/go-chat/internal/websocket"
+	"github.com/vaberof/go-chat/internal/websocket/websocketserver"
 	"github.com/vaberof/go-chat/pkg/http/httpserver"
 	"github.com/vaberof/go-chat/pkg/logging/logs"
 	"os"
@@ -46,22 +47,27 @@ func main() {
 		panic(err)
 	}
 
-	err = postgresDb.AutoMigrate(&postgresuser.User{})
+	err = postgresDb.AutoMigrate(&postgres.Room{}, &postgres.Member{}, &postgres.User{})
 	if err != nil {
 		panic(err.Error())
 	}
 
-	userStorage := postgresuser.NewUserStorage(postgresDb, logs)
+	userStorage := postgres.NewUserStorage(postgresDb, logs)
+	roomStorage := postgres.NewRoomStorage(postgresDb, logs)
 
 	userService := user.NewUserService(userStorage, logs)
+	roomService := room.NewRoomService(roomStorage, logs)
 	authService := auth.NewAuthService(userService, &appConfig.AuthService)
 
 	appServer := httpserver.New(&appConfig.HttpServer, logs)
-	appServer.Server.Group(httproutes.RegisterRoute(authService))
-	appServer.Server.Group(httproutes.LoginRoute(authService))
 
-	websocketServer := websocketserver.New(&appConfig.WebsocketServer, logs)
-	websocketServer.Server.Group(websocket.ServeWebsocketRoute(websocketServer.Hub, authService, logs))
+	httpHandler := httproutes.NewHandler(authService, roomService)
+	httpHandler.InitRoutes(appServer.Server, logs)
+
+	hub := websocket.NewHub(roomService, logs)
+
+	websocketServer := websocketserver.New(&appConfig.WebsocketServer, hub, logs)
+	websocketServer.Server.Group(websocketroutes.ServeWebsocketRoute(websocketServer.Hub, authService, logs))
 
 	appServerStarter := appServer.StartAsync()
 	websocketServerStarter := websocketServer.StartAsync()

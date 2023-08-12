@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
-	"github.com/vaberof/go-chat/internal/domain/websocket"
+	"github.com/vaberof/go-chat/internal/websocket"
 	"github.com/vaberof/go-chat/pkg/logging/logs"
 	"go.uber.org/zap"
 	"net/http"
@@ -18,7 +18,7 @@ type WebsocketServer struct {
 	address string
 }
 
-func New(config *WebsocketServerConfig, logs *logs.Logs) *WebsocketServer {
+func New(config *WebsocketServerConfig, hub *websocket.Hub, logs *logs.Logs) *WebsocketServer {
 	chiServer := chi.NewRouter()
 	chiServer.Use(cors.AllowAll().Handler)
 
@@ -27,7 +27,7 @@ func New(config *WebsocketServerConfig, logs *logs.Logs) *WebsocketServer {
 
 	return &WebsocketServer{
 		Server:  chiServer,
-		Hub:     websocket.NewHub(logs),
+		Hub:     hub,
 		config:  config,
 		logger:  logger,
 		address: fmt.Sprintf("%s:%d", config.Host, config.Port),

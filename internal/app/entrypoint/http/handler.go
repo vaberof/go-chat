@@ -3,21 +3,28 @@ package http
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/vaberof/go-chat/internal/app/entrypoint/http/middleware"
+	websocketroutes "github.com/vaberof/go-chat/internal/app/entrypoint/websocket"
 	authservice "github.com/vaberof/go-chat/internal/domain/auth"
 	"github.com/vaberof/go-chat/internal/domain/room"
+	"github.com/vaberof/go-chat/internal/websocket"
 	"github.com/vaberof/go-chat/pkg/logging/logs"
 )
 
 type Handler struct {
+	hub         *websocket.Hub
 	authService authservice.AuthService
 	roomService room.RoomService
 }
 
-func NewHandler(authService authservice.AuthService, roomService room.RoomService) *Handler {
-	return &Handler{authService: authService, roomService: roomService}
+func NewHandler(hub *websocket.Hub, authService authservice.AuthService, roomService room.RoomService) *Handler {
+	return &Handler{hub: hub, authService: authService, roomService: roomService}
 }
 
 func (h *Handler) InitRoutes(router chi.Router, logs *logs.Logs) chi.Router {
+	router.Route("/websocket", func(r chi.Router) {
+		r.Get("/", websocketroutes.ServeWebsocketHandler(h.hub, h.authService, logs))
+	})
+
 	router.Route("/api/v1", func(r chi.Router) {
 
 		r.Route("/account", func(r chi.Router) {

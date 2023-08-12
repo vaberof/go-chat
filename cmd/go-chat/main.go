@@ -5,13 +5,11 @@ import (
 	"fmt"
 	"github.com/joho/godotenv"
 	httproutes "github.com/vaberof/go-chat/internal/app/entrypoint/http"
-	websocketroutes "github.com/vaberof/go-chat/internal/app/entrypoint/websocket"
 	"github.com/vaberof/go-chat/internal/domain/auth"
 	"github.com/vaberof/go-chat/internal/domain/room"
 	"github.com/vaberof/go-chat/internal/domain/user"
 	"github.com/vaberof/go-chat/internal/infra/storage/postgres"
 	"github.com/vaberof/go-chat/internal/websocket"
-	"github.com/vaberof/go-chat/internal/websocket/websocketserver"
 	"github.com/vaberof/go-chat/pkg/http/httpserver"
 	"github.com/vaberof/go-chat/pkg/logging/logs"
 	"os"
@@ -32,9 +30,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	loggerName := "main"
-	logger := logs.WithName(loggerName)
 
 	appConfig := getAppConfig(*appConfigPaths)
 	appConfig.PostgresDatabase.User = os.Getenv("POSTGRES_USER")
@@ -61,23 +56,14 @@ func main() {
 
 	appServer := httpserver.New(&appConfig.HttpServer, logs)
 
-	httpHandler := httproutes.NewHandler(authService, roomService)
-	httpHandler.InitRoutes(appServer.Server, logs)
-
 	hub := websocket.NewHub(roomService, logs)
 
-	websocketServer := websocketserver.New(&appConfig.WebsocketServer, hub, logs)
-	websocketServer.Server.Group(websocketroutes.ServeWebsocketRoute(websocketServer.Hub, authService, logs))
+	httpHandler := httproutes.NewHandler(hub, authService, roomService)
+	httpHandler.InitRoutes(appServer.Server, logs)
 
 	appServerStarter := appServer.StartAsync()
-	websocketServerStarter := websocketServer.StartAsync()
 
-	select {
-	case appServerErr := <-(*appServerStarter):
-		logger.Errorf("Cannot start app server: %v", appServerErr)
-	case websocketErr := <-(*websocketServerStarter):
-		logger.Errorf("Cannot start websocket server: %v", websocketErr)
-	}
+	<-(*appServerStarter)
 }
 
 func loadEnvironmentVariables() error {

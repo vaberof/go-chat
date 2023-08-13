@@ -2,7 +2,7 @@ package auth
 
 import (
 	"errors"
-	user2 "github.com/vaberof/go-chat/internal/domain/user"
+	"github.com/vaberof/go-chat/internal/domain/user"
 	"github.com/vaberof/go-chat/pkg/auth"
 	"github.com/vaberof/go-chat/pkg/domain"
 	"github.com/vaberof/go-chat/pkg/xpassword"
@@ -12,21 +12,21 @@ import (
 const defaultTokenTtl = 7 * 24 * time.Hour
 
 type AuthService interface {
-	Register(username, password string) (*user2.User, error)
+	Register(username, password string) (*user.User, error)
 	Login(username, password string) (*auth.JwtToken, error)
 	VerifyToken(token string) (*domain.UserId, error)
 }
 
 type authServiceImpl struct {
-	userService user2.UserService
+	userService user.UserService
 	config      *AuthServiceConfig
 }
 
-func NewAuthService(userService user2.UserService, config *AuthServiceConfig) AuthService {
+func NewAuthService(userService user.UserService, config *AuthServiceConfig) AuthService {
 	return &authServiceImpl{userService: userService, config: config}
 }
 
-func (service *authServiceImpl) Register(username, password string) (*user2.User, error) {
+func (service *authServiceImpl) Register(username, password string) (*user.User, error) {
 	err := service.userService.FindByUsername(username)
 	if err == nil {
 		return nil, errors.New("user with given username already exists")

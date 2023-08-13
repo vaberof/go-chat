@@ -5,6 +5,7 @@ import (
 	"github.com/vaberof/go-chat/internal/app/entrypoint/http/middleware"
 	websocketroutes "github.com/vaberof/go-chat/internal/app/entrypoint/websocket"
 	authservice "github.com/vaberof/go-chat/internal/domain/auth"
+	"github.com/vaberof/go-chat/internal/domain/message"
 	"github.com/vaberof/go-chat/internal/domain/room"
 	"github.com/vaberof/go-chat/internal/domain/user"
 	"github.com/vaberof/go-chat/internal/websocket"
@@ -12,14 +13,15 @@ import (
 )
 
 type Handler struct {
-	hub         *websocket.Hub
-	authService authservice.AuthService
-	userService user.UserService
-	roomService room.RoomService
+	hub            *websocket.Hub
+	authService    authservice.AuthService
+	userService    user.UserService
+	roomService    room.RoomService
+	messageService message.MessageService
 }
 
-func NewHandler(hub *websocket.Hub, authService authservice.AuthService, userService user.UserService, roomService room.RoomService) *Handler {
-	return &Handler{hub: hub, authService: authService, userService: userService, roomService: roomService}
+func NewHandler(hub *websocket.Hub, authService authservice.AuthService, userService user.UserService, roomService room.RoomService, messageService message.MessageService) *Handler {
+	return &Handler{hub: hub, authService: authService, userService: userService, roomService: roomService, messageService: messageService}
 }
 
 func (h *Handler) InitRoutes(router chi.Router, logs *logs.Logs) chi.Router {
@@ -42,8 +44,12 @@ func (h *Handler) InitRoutes(router chi.Router, logs *logs.Logs) chi.Router {
 			rooms.Post("/", middleware.AuthMiddleware(h.CreateRoom(), h.authService, logs))
 			rooms.Post("/list", middleware.AuthMiddleware(h.GetUserRooms(), h.authService, logs))
 			rooms.Get("/{room_id}/members", middleware.AuthMiddleware(h.GetMembers(), h.authService, logs))
+			rooms.Get("/{room_id}/messages", middleware.AuthMiddleware(h.GetMessages(), h.authService, logs))
 		})
 
+		apiv1.Route("/messages", func(messages chi.Router) {
+			messages.Post("/", middleware.AuthMiddleware(h.CreateMessage(), h.authService, logs))
+		})
 	})
 
 	return router

@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"errors"
+	"github.com/vaberof/go-chat/internal/domain/message"
 	"github.com/vaberof/go-chat/internal/domain/room"
 	"github.com/vaberof/go-chat/pkg/domain"
 	"github.com/vaberof/go-chat/pkg/logging/logs"
@@ -15,7 +16,8 @@ type Room struct {
 	CreatorId int64
 	Name      string
 	Type      string
-	Members   []*Member `gorm:"foreignKey:RoomId"`
+	Members   []*Member  `gorm:"foreignKey:RoomId"`
+	Messages  []*Message `gorm:"foreignKey:RoomId"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -89,7 +91,7 @@ func (storage *roomStorageImpl) Create(creatorId domain.UserId, name, roomType s
 func (storage *roomStorageImpl) Get(roomId domain.RoomId) (*room.Room, error) {
 	var postgresRoom Room
 
-	err := storage.db.Table("rooms").Where("id = ?", roomId).First(&postgresRoom).Error
+	err := storage.db.Preload("members").Preload("messages").Table("rooms").Where("id = ?", roomId).First(&postgresRoom).Error
 	if err != nil {
 		storage.logger.Errorf("Failed to get a room: %v", err)
 
@@ -135,6 +137,17 @@ func (storage *roomStorageImpl) GetMembers(roomId domain.RoomId) ([]*room.Member
 	}
 
 	return buildDomainMembers(postgresMembers), nil
+}
+
+func (storage *roomStorageImpl) GetMessages(roomId domain.RoomId) ([]*message.Message, error) {
+	var postgresMessages []*Message
+
+	err := storage.db.Table("messages").Where("room_id = ?", roomId).Find(&postgresMessages).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return buildDomainMessages(postgresMessages), nil
 }
 
 func (storage *roomStorageImpl) Find(roomId domain.RoomId) error {
@@ -201,6 +214,7 @@ func buildDomainRoom(postgresRoom *Room) *room.Room {
 		Name:      postgresRoom.Name,
 		Type:      postgresRoom.Type,
 		Members:   getMemberIds(postgresRoom.Members),
+		Messages:  getMessagesIds(postgresRoom.Messages),
 	}
 }
 
@@ -232,6 +246,16 @@ func buildDomainMembers(postgresMembers []*Member) []*room.Member {
 	}
 
 	return domainMembers
+}
+
+func getMessagesIds(messages []*Message) []domain.MessageId {
+	messageIds := make([]domain.MessageId, len(messages))
+
+	for i := 0; i < len(messageIds); i++ {
+		messageIds[i] = domain.MessageId(messages[i].Id)
+	}
+
+	return messageIds
 }
 
 func getMemberIds(members []*Member) []domain.UserId {

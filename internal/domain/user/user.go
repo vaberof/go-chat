@@ -9,4 +9,5 @@ type User struct {
 	Username string
 	Password string
 	Rooms    []domain.RoomId
+	Messages []domain.MessageId
 }

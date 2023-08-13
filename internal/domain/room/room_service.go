@@ -2,6 +2,7 @@ package room
 
 import (
 	"fmt"
+	"github.com/vaberof/go-chat/internal/domain/message"
 	"github.com/vaberof/go-chat/pkg/domain"
 	"github.com/vaberof/go-chat/pkg/logging/logs"
 	"go.uber.org/zap"
@@ -11,6 +12,7 @@ type RoomService interface {
 	Create(creatorId domain.UserId, name, roomType string, members []domain.UserId) (*Room, error)
 	Get(roomId domain.RoomId) (*Room, error)
 	GetMembers(roomId domain.RoomId) ([]*Member, error)
+	GetMessages(roomId domain.RoomId) ([]*message.Message, error)
 	List(userId domain.UserId) ([]*Room, error)
 }
 
@@ -61,7 +63,16 @@ func (service *roomServiceImpl) GetMembers(roomId domain.RoomId) ([]*Member, err
 	if err := service.roomStorage.Find(roomId); err != nil {
 		return nil, err
 	}
+
 	return service.roomStorage.GetMembers(roomId)
+}
+
+func (service *roomServiceImpl) GetMessages(roomId domain.RoomId) ([]*message.Message, error) {
+	if err := service.roomStorage.Find(roomId); err != nil {
+		return nil, err
+	}
+
+	return service.roomStorage.GetMessages(roomId)
 }
 
 func (service *roomServiceImpl) List(userId domain.UserId) ([]*Room, error) {

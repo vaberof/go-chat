@@ -12,8 +12,7 @@ type MessageService interface {
 
 type messageServiceImpl struct {
 	messageStorage MessageStorage
-
-	logger *zap.SugaredLogger
+	logger         *zap.SugaredLogger
 }
 
 func NewMessageService(messageStorage MessageStorage, logs *logs.Logs) MessageService {
@@ -26,5 +25,5 @@ func NewMessageService(messageStorage MessageStorage, logs *logs.Logs) MessageSe
 }
 
 func (service *messageServiceImpl) Create(senderId domain.UserId, roomId domain.RoomId, message string) (*Message, error) {
-	return nil, nil
+	return service.messageStorage.Create(senderId, roomId, message)
 }

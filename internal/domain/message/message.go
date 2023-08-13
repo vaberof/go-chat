@@ -11,4 +11,5 @@ type Message struct {
 	RoomId    domain.RoomId
 	Text      string
 	CreatedAt time.Time
+	EditedAt  time.Time
 }

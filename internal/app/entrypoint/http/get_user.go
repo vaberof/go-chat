@@ -12,9 +12,10 @@ import (
 )
 
 type getUserResponsePayload struct {
-	Id       domain.UserId   `json:"id"`
-	Username string          `json:"username"`
-	Rooms    []domain.RoomId `json:"rooms"`
+	Id       domain.UserId      `json:"id"`
+	Username string             `json:"username"`
+	Rooms    []domain.RoomId    `json:"rooms"`
+	Messages []domain.MessageId `json:"messages"`
 }
 
 func (h *Handler) GetUser() http.HandlerFunc {
@@ -41,6 +42,7 @@ func (h *Handler) GetUser() http.HandlerFunc {
 			Id:       user.Id,
 			Username: user.Username,
 			Rooms:    user.Rooms,
+			Messages: user.Messages,
 		})
 
 		views.RenderJSON(w, r, http.StatusOK, apiv1.Success(payload))

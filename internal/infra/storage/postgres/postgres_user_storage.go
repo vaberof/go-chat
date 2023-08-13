@@ -15,7 +15,8 @@ type User struct {
 	Id        int64
 	Username  string
 	Password  string
-	Rooms     []*Room `gorm:"many2many:members"`
+	Rooms     []*Room    `gorm:"many2many:members"`
+	Messages  []*Message `gorm:"foreignKey:SenderId"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -109,6 +110,7 @@ func buildDomainUser(postgresUser *User) *user.User {
 		Username: postgresUser.Username,
 		Password: postgresUser.Password,
 		Rooms:    getRoomIds(postgresUser.Rooms),
+		Messages: getMessagesIds(postgresUser.Messages),
 	}
 }
 

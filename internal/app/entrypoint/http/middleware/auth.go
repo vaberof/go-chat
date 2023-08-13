@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"context"
 	service "github.com/vaberof/go-chat/internal/domain/auth"
 	"github.com/vaberof/go-chat/pkg/auth"
 	"github.com/vaberof/go-chat/pkg/logging/logs"
@@ -34,7 +33,7 @@ func AuthMiddleware(next http.Handler, authService service.AuthService, logs *lo
 
 		logger.Infow("Client is authenticated")
 
-		ctx := auth.UserIdToContext(context.Background(), userId)
+		ctx := auth.UserIdToContext(request.Context(), userId)
 
 		next.ServeHTTP(responseWriter, request.WithContext(ctx))
 	})

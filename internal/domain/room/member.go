@@ -11,9 +11,9 @@ const (
 )
 
 type Member struct {
-	UserId   domain.UserId
-	RoomId   domain.RoomId
-	Nickname string
-	Role     string
-	JoinedAt time.Time
+	UserId   domain.UserId `json:"user_id"`
+	RoomId   domain.RoomId `json:"room_id""`
+	Nickname string        `json:"nickname"`
+	Role     string        `json:"role"`
+	JoinedAt time.Time     `json:"joined_at"`
 }

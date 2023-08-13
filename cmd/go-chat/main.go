@@ -55,10 +55,9 @@ func main() {
 	authService := auth.NewAuthService(userService, &appConfig.AuthService)
 
 	appServer := httpserver.New(&appConfig.HttpServer, logs)
-
 	hub := websocket.NewHub(roomService, logs)
 
-	httpHandler := httproutes.NewHandler(hub, authService, roomService)
+	httpHandler := httproutes.NewHandler(hub, authService, userService, roomService)
 	httpHandler.InitRoutes(appServer.Server, logs)
 
 	appServerStarter := appServer.StartAsync()

@@ -10,6 +10,7 @@ import (
 type UserService interface {
 	Create(username, password string) (*User, error)
 	Get(userId domain.UserId) (*User, error)
+	GetUsers(userIds []domain.UserId) ([]*User, error)
 	GetByUsername(username string) (*User, error)
 	FindByUsername(username string) error
 }
@@ -17,6 +18,10 @@ type UserService interface {
 type userServiceImpl struct {
 	userStorage UserStorage
 	logger      *zap.SugaredLogger
+}
+
+func (service *userServiceImpl) GetUsers(userIds []domain.UserId) ([]*User, error) {
+	return service.userStorage.GetUsers(userIds)
 }
 
 func NewUserService(userStorage UserStorage, logs *logs.Logs) UserService {

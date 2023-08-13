@@ -116,7 +116,7 @@ func (storage *roomStorageImpl) GetRooms(roomIds []domain.RoomId) ([]*room.Room,
 func (storage *roomStorageImpl) List(userId domain.UserId) ([]*room.Room, error) {
 	var user User
 
-	err := storage.db.Preload("Rooms").Table("users").Where("id = ?", userId).First(&user).Error
+	err := storage.db.Preload("Rooms.Members").Table("users").Where("id = ?", userId).First(&user).Error
 	if err != nil {
 		return nil, err
 	}
@@ -135,6 +135,17 @@ func (storage *roomStorageImpl) GetMembers(roomId domain.RoomId) ([]*room.Member
 	}
 
 	return buildDomainMembers(postgresMembers), nil
+}
+
+func (storage *roomStorageImpl) Find(roomId domain.RoomId) error {
+	var room Room
+
+	err := storage.db.Table("rooms").Where("id = ?", roomId).First(&room).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (storage *roomStorageImpl) getUser(userId domain.UserId) (*User, error) {

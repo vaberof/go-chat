@@ -8,4 +8,5 @@ type RoomStorage interface {
 	GetRooms(roomIds []domain.RoomId) ([]*Room, error)
 	GetMembers(roomId domain.RoomId) ([]*Member, error)
 	List(userId domain.UserId) ([]*Room, error)
+	Find(roomId domain.RoomId) error
 }

@@ -58,6 +58,9 @@ func (service *roomServiceImpl) Get(roomId domain.RoomId) (*Room, error) {
 }
 
 func (service *roomServiceImpl) GetMembers(roomId domain.RoomId) ([]*Member, error) {
+	if err := service.roomStorage.Find(roomId); err != nil {
+		return nil, err
+	}
 	return service.roomStorage.GetMembers(roomId)
 }
 

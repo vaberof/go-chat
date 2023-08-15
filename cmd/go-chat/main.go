@@ -43,7 +43,7 @@ func main() {
 		panic(err)
 	}
 
-	err = postgresDb.AutoMigrate(&postgres.Room{}, &postgres.Member{}, &postgres.Message{}, &postgres.User{})
+	err = postgresDb.AutoMigrate(&postgres.User{}, &postgres.Room{}, &postgres.Member{}, &postgres.Message{})
 	if err != nil {
 		panic(err.Error())
 	}
@@ -58,7 +58,9 @@ func main() {
 	authService := auth.NewAuthService(userService, &appConfig.AuthService)
 
 	appServer := httpserver.New(&appConfig.HttpServer, logs)
-	hub := websocket.NewHub(roomService, logs)
+	hub := websocket.NewHub(messageService, roomService, userService, logs)
+
+	go hub.Run()
 
 	httpHandler := httproutes.NewHandler(hub, authService, userService, roomService, messageService)
 	httpHandler.InitRoutes(appServer.Server, logs)

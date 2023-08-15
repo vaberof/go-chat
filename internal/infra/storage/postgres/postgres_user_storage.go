@@ -15,8 +15,8 @@ type User struct {
 	Id        int64
 	Username  string
 	Password  string
-	Rooms     []*Room    `gorm:"many2many:members"`
-	Messages  []*Message `gorm:"foreignKey:SenderId"`
+	Rooms     []Room    `gorm:"many2many:members"`
+	Messages  []Message `gorm:"foreignKey:SenderId"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -38,7 +38,7 @@ func (storage *userStorageImpl) Create(username, password string) (*user.User, e
 
 	postgresUser.Username = username
 	postgresUser.Password = password
-	postgresUser.Rooms = make([]*Room, 0)
+	postgresUser.Rooms = make([]Room, 0)
 
 	err := storage.db.Table("users").Create(&postgresUser).Error
 	if err != nil {
@@ -124,7 +124,7 @@ func buildDomainUsers(postgresUsers []*User) []*user.User {
 	return domainUsers
 }
 
-func getRoomIds(rooms []*Room) []domain.RoomId {
+func getRoomIds(rooms []Room) []domain.RoomId {
 	roomIds := make([]domain.RoomId, len(rooms))
 
 	for i := 0; i < len(roomIds); i++ {

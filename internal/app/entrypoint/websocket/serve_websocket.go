@@ -10,7 +10,7 @@ import (
 
 func ServeWebsocketHandler(hub *websocket.Hub, authService auth.AuthService, logs *logs.Logs) http.HandlerFunc {
 	handler := http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
-		websocket.ServeWebsocket(hub, responseWriter, request)
+		websocket.ServeWebsocket(hub, responseWriter, request, logs)
 	})
 
 	return middleware.AuthMiddleware(handler, authService, logs)

@@ -8,6 +8,7 @@ import (
 	"github.com/vaberof/go-chat/pkg/logging/logs"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"time"
 )
 
@@ -16,8 +17,8 @@ type Room struct {
 	CreatorId int64
 	Name      string
 	Type      string
-	Members   []*Member  `gorm:"foreignKey:RoomId"`
-	Messages  []*Message `gorm:"foreignKey:RoomId"`
+	Members   []Member  `gorm:"foreignKey:RoomId"`
+	Messages  []Message `gorm:"foreignKey:RoomId"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -48,7 +49,7 @@ func (storage *roomStorageImpl) Create(creatorId domain.UserId, name, roomType s
 		CreatorId: int64(creatorId),
 		Name:      name,
 		Type:      roomType,
-		Members:   make([]*Member, 0),
+		Members:   make([]Member, 0),
 	}
 
 	creatorUser, err := storage.getUser(creatorId)
@@ -68,12 +69,12 @@ func (storage *roomStorageImpl) Create(creatorId domain.UserId, name, roomType s
 		return nil, err
 	}
 
-	var postgresMembers []*Member
+	var postgresMembers []Member
 
 	adminMember := storage.convertUserToMember(creatorUser, &postgresRoom, room.AdminRole)
 	regularMembers := storage.convertUsersToMembers(regularUsers, &postgresRoom, room.RegularRole)
 
-	postgresMembers = append(postgresMembers, adminMember)
+	postgresMembers = append(postgresMembers, *adminMember)
 	postgresMembers = append(postgresMembers, regularMembers...)
 
 	postgresRoom.Members = postgresMembers
@@ -91,7 +92,7 @@ func (storage *roomStorageImpl) Create(creatorId domain.UserId, name, roomType s
 func (storage *roomStorageImpl) Get(roomId domain.RoomId) (*room.Room, error) {
 	var postgresRoom Room
 
-	err := storage.db.Preload("members").Preload("messages").Table("rooms").Where("id = ?", roomId).First(&postgresRoom).Error
+	err := storage.db.Preload(clause.Associations).Table("rooms").Where("id = ?", roomId).First(&postgresRoom).Error
 	if err != nil {
 		storage.logger.Errorf("Failed to get a room: %v", err)
 
@@ -102,7 +103,7 @@ func (storage *roomStorageImpl) Get(roomId domain.RoomId) (*room.Room, error) {
 }
 
 func (storage *roomStorageImpl) GetRooms(roomIds []domain.RoomId) ([]*room.Room, error) {
-	var postgresRooms []*Room
+	var postgresRooms []Room
 
 	err := storage.db.Table("rooms").Where("id IN (?)", roomIds).Find(&postgresRooms).Error
 	if err != nil {
@@ -188,11 +189,11 @@ func (storage *roomStorageImpl) getUsers(userIds []domain.UserId) ([]*User, erro
 	return postgresUsers, nil
 }
 
-func (storage *roomStorageImpl) convertUsersToMembers(users []*User, room *Room, role string) []*Member {
-	members := make([]*Member, len(users))
+func (storage *roomStorageImpl) convertUsersToMembers(users []*User, room *Room, role string) []Member {
+	members := make([]Member, len(users))
 
 	for i := 0; i < len(members); i++ {
-		members[i] = storage.convertUserToMember(users[i], room, role)
+		members[i] = *storage.convertUserToMember(users[i], room, role)
 	}
 
 	return members
@@ -218,11 +219,11 @@ func buildDomainRoom(postgresRoom *Room) *room.Room {
 	}
 }
 
-func buildDomainRooms(postgresRooms []*Room) []*room.Room {
+func buildDomainRooms(postgresRooms []Room) []*room.Room {
 	domainRooms := make([]*room.Room, len(postgresRooms))
 
 	for i := 0; i < len(domainRooms); i++ {
-		domainRooms[i] = buildDomainRoom(postgresRooms[i])
+		domainRooms[i] = buildDomainRoom(&postgresRooms[i])
 	}
 
 	return domainRooms
@@ -248,7 +249,7 @@ func buildDomainMembers(postgresMembers []*Member) []*room.Member {
 	return domainMembers
 }
 
-func getMessagesIds(messages []*Message) []domain.MessageId {
+func getMessagesIds(messages []Message) []domain.MessageId {
 	messageIds := make([]domain.MessageId, len(messages))
 
 	for i := 0; i < len(messageIds); i++ {
@@ -258,7 +259,7 @@ func getMessagesIds(messages []*Message) []domain.MessageId {
 	return messageIds
 }
 
-func getMemberIds(members []*Member) []domain.UserId {
+func getMemberIds(members []Member) []domain.UserId {
 	roomIds := make([]domain.UserId, len(members))
 
 	for i := 0; i < len(roomIds); i++ {

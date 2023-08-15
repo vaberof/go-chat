@@ -1,7 +1,7 @@
 package websocket
 
 import (
-	"bytes"
+	"encoding/json"
 	"github.com/gorilla/websocket"
 	"github.com/vaberof/go-chat/pkg/auth"
 	"github.com/vaberof/go-chat/pkg/domain"
@@ -37,11 +37,11 @@ var upgrader = websocket.Upgrader{
 }
 
 type Client struct {
-	hub    *Hub
 	userId domain.UserId
-
-	conn *websocket.Conn
-	send chan []byte
+	rooms  map[domain.RoomId]*Room
+	conn   *websocket.Conn
+	hub    *Hub
+	send   chan []byte
 
 	logger *zap.SugaredLogger
 }
@@ -50,12 +50,14 @@ func NewClient(userId domain.UserId, hub *Hub, conn *websocket.Conn, logs *logs.
 	loggerName := "websocket-client"
 	logger := logs.WithName(loggerName)
 
-	return &Client{hub: hub, userId: userId, conn: conn, send: make(chan []byte, 256), logger: logger}
-}
-
-type MessageChan struct {
-	SenderId domain.UserId
-	Message  []byte
+	return &Client{
+		hub:    hub,
+		userId: userId,
+		rooms:  make(map[domain.RoomId]*Room),
+		conn:   conn,
+		send:   make(chan []byte, 256),
+		logger: logger,
+	}
 }
 
 // ReadPump pumps messages from the websocket connection to the hub.
@@ -72,18 +74,14 @@ func (c *Client) ReadPump() {
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {
-		_, message, err := c.conn.ReadMessage()
+		_, jsonMessage, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
 			}
 			break
 		}
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		c.hub.broadcast <- MessageChan{
-			SenderId: c.userId,
-			Message:  message,
-		}
+		c.handleMessage(jsonMessage)
 	}
 }
 
@@ -133,7 +131,7 @@ func (c *Client) WritePump() {
 	}
 }
 
-func ServeWebsocket(hub *Hub, w http.ResponseWriter, r *http.Request) {
+func ServeWebsocket(hub *Hub, w http.ResponseWriter, r *http.Request, logs *logs.Logs) {
 	userId := auth.UserIdFromContext(r.Context())
 	if userId == nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -147,11 +145,73 @@ func ServeWebsocket(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := &Client{hub: hub, userId: *userId, conn: conn, send: make(chan []byte, 256)}
+	client := NewClient(*userId, hub, conn, logs)
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in
 	// new goroutines.
 	go client.WritePump()
 	go client.ReadPump()
+}
+
+func (c *Client) handleMessage(jsonMessage []byte) {
+	var inboundMessage Message
+
+	err := json.Unmarshal(jsonMessage, &inboundMessage)
+	if err != nil {
+		return
+	}
+
+	switch inboundMessage.Action {
+	case SendMessageAction:
+		var payload MessagePayload
+
+		err := json.Unmarshal(inboundMessage.Payload, &payload)
+		if err != nil {
+			c.logger.Errorf("Failed to unmarshal to MessagePayload %v\n", err)
+			return
+		}
+
+		c.handleSendMessageAction(inboundMessage.Action, &payload)
+
+	case JoinRoomAction:
+		var payload JoinRoomPayload
+
+		err := json.Unmarshal(inboundMessage.Payload, &payload)
+		if err != nil {
+			c.logger.Errorf("Failed to unmarshal to JoinRoomPayload %v\n", err)
+			return
+		}
+
+		c.handleJoinRoomAction(&payload)
+	}
+}
+
+func (c *Client) handleSendMessageAction(action string, messagePayload *MessagePayload) {
+	_, err := c.hub.messageService.Create(messagePayload.SenderId, messagePayload.RoomId, messagePayload.Text)
+	if err != nil {
+		c.logger.Errorf("Failed to create message: %v", err)
+		return
+	}
+
+	c.hub.broadcastToRoom(action, messagePayload)
+}
+
+func (c *Client) handleJoinRoomAction(message *JoinRoomPayload) {
+	roomId := message.RoomId
+
+	_, err := c.hub.roomService.Get(roomId)
+	if err != nil {
+		c.logger.Errorf("Failed to get room with id %d: %v\n", roomId, err)
+		return
+	}
+
+	room, ok := c.hub.rooms[roomId]
+	if !ok {
+		room = c.hub.createRoom(roomId)
+	}
+
+	c.rooms[roomId] = room
+
+	room.register <- c
 }

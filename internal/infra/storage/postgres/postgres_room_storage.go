@@ -50,6 +50,7 @@ func (storage *roomStorageImpl) Create(creatorId domain.UserId, name, roomType s
 		Name:      name,
 		Type:      roomType,
 		Members:   make([]Member, 0),
+		Messages:  make([]Message, 0),
 	}
 
 	creatorUser, err := storage.getUser(creatorId)
@@ -105,7 +106,7 @@ func (storage *roomStorageImpl) Get(roomId domain.RoomId) (*room.Room, error) {
 func (storage *roomStorageImpl) GetRooms(roomIds []domain.RoomId) ([]*room.Room, error) {
 	var postgresRooms []Room
 
-	err := storage.db.Table("rooms").Where("id IN (?)", roomIds).Find(&postgresRooms).Error
+	err := storage.db.Preload(clause.Associations).Table("rooms").Where("id IN (?)", roomIds).Find(&postgresRooms).Error
 	if err != nil {
 		storage.logger.Errorf("Failed to get rooms: %v", err)
 
@@ -165,7 +166,7 @@ func (storage *roomStorageImpl) Find(roomId domain.RoomId) error {
 func (storage *roomStorageImpl) getUser(userId domain.UserId) (*User, error) {
 	var postgresUser User
 
-	err := storage.db.Preload("Rooms").Table("users").Where("id = ?", userId).First(&postgresUser).Error
+	err := storage.db.Table("users").Where("id = ?", userId).First(&postgresUser).Error
 	if err != nil {
 		storage.logger.Errorf("Failed to get a user with id '%d': %v", userId, err)
 
@@ -178,7 +179,7 @@ func (storage *roomStorageImpl) getUser(userId domain.UserId) (*User, error) {
 func (storage *roomStorageImpl) getUsers(userIds []domain.UserId) ([]*User, error) {
 	var postgresUsers []*User
 
-	storage.db.Preload("Rooms").Table("users").Where("id IN(?)", userIds).Find(&postgresUsers)
+	storage.db.Table("users").Where("id IN(?)", userIds).Find(&postgresUsers)
 	if len(postgresUsers) != len(userIds) {
 		err := errors.New("users with given ids are not found")
 		storage.logger.Errorf("Failed to get users: %v", err)

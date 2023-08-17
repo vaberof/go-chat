@@ -8,6 +8,7 @@ import (
 	"github.com/vaberof/go-chat/pkg/logging/logs"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"time"
 )
 
@@ -54,7 +55,7 @@ func (storage *userStorageImpl) Create(username, password string) (*user.User, e
 func (storage *userStorageImpl) Get(userId domain.UserId) (*user.User, error) {
 	var postgresUser User
 
-	err := storage.db.Preload("Rooms").Table("users").Where("id = ?", userId).First(&postgresUser).Error
+	err := storage.db.Preload(clause.Associations).Table("users").Where("id = ?", userId).First(&postgresUser).Error
 	if err != nil {
 		storage.logger.Errorf("Failed to get a user with id '%d': %v", userId, err)
 		return nil, err
@@ -66,7 +67,7 @@ func (storage *userStorageImpl) Get(userId domain.UserId) (*user.User, error) {
 func (storage *userStorageImpl) GetUsers(userIds []domain.UserId) ([]*user.User, error) {
 	var postgresUsers []*User
 
-	err := storage.db.Table("users").Where("id IN(?)", userIds).Find(&postgresUsers).Error
+	err := storage.db.Preload(clause.Associations).Table("users").Where("id IN(?)", userIds).Find(&postgresUsers).Error
 	if err != nil {
 		storage.logger.Errorf("Failed to get users: %v", err)
 		return nil, err
